@@ -50,6 +50,25 @@ var neededFiles = [
 			obj.itemTypeName = "Armor Shader";
 			obj.icon = "/img/misc/missing_icon.png";
 			obj.itemDescription = "Equip this shader to change the color of your armor.";
+		} else if ( obj.itemHash == "1759332262" ){
+			obj.bucketTypeHash = "2973005342";
+			obj.itemName = "Superblack";
+			obj.equippable = true;
+			obj.itemTypeName = "Armor Shader";
+			obj.icon = "/img/misc/missing_icon.png";
+			obj.itemDescription = "Equip this shader to change the color of your armor.";
+		} else if ( obj.itemHash == "1458765388" ){
+			obj.bucketTypeHash = "434908299";
+			obj.itemName = "Classified";
+			obj.equippable = true;
+			obj.itemTypeName = "Artifact";
+			obj.icon = "/img/misc/missing_icon.png";
+		} else if ( obj.itemHash == "320629370" ){
+			obj.bucketTypeHash = "434908299";
+			obj.itemName = "Classified";
+			obj.equippable = true;
+			obj.itemTypeName = "Artifact";
+			obj.icon = "/img/misc/missing_icon.png";
 		}
 		obj.itemName = encodeURIComponent(obj.itemName);
 		obj.tierTypeName = encodeURIComponent(obj.tierTypeName);
@@ -97,9 +116,11 @@ var neededFiles = [
 		obj.nodes = _.map(item.nodes, function(node){
 			return {
 				nodeHash: node.nodeHash,
+                column: node.column,
 				steps: _.map(node.steps, function(step){
 					return {
 						icon: step.icon,
+                        nodeStepHash: step.nodeStepHash,
 						nodeStepName: step.nodeStepName,
 						nodeStepDescription: step.nodeStepDescription,
 						perkHashes: step.perkHashes,
@@ -125,7 +146,11 @@ var neededFiles = [
 		delete item.acceptedItems;
 		delete item.unlockValueHash;
 		delete item.failureStrings;
+        delete item.sales;
 		return item;
+	}},
+    { table: "DestinyVendorDefinition", name: "questDefs", key: "hash", reduce: function(item){
+		return item.sales;
 	}},
 	{ table: "DestinyObjectiveDefinition", name: "objectiveDefs", key: "objectiveHash", reduce: function(item){
 		var obj = { objectiveHash: item.objectiveHash, completionValue: item.completionValue, displayDescription: item.displayDescription };
@@ -226,6 +251,17 @@ var extractData = function(callback){
 					console.log(fs.existsSync(dataPath) + " creating new path: " + dataPath);
 					fs.mkdirSync(dataPath);
 				}
+                global[set.name] = obj;
+                if ( set.name == "questDefs"){
+                    obj = _.reduce(obj, function(memo, entries){
+                            _.each(entries, function(q){
+                                if ( !_.has(global.itemDefs, q.itemHash) ){
+                                   memo[q.itemHash] = q.bucketHash;
+                                }
+                            });
+                        return memo;
+                    }, {});
+                }
 				fs.writeFileSync(dataPath + filename, "_" + set.name + "=" + JSON.stringify(obj) + ";");
 				//console.log("2.count " + count);
 				if (count == 0){

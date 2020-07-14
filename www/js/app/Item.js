@@ -119,9 +119,15 @@ var Item = function(model, profile) {
         model.isEquipment = true;
     }
 
+    this.isEquipped = ko.observable();
+
     /* TODO: Determine why this is needed */
     _.each(model, function(value, key) {
-        self[key] = value;
+        if (_.isFunction(self[key])) {
+            self[key](value);
+        } else {
+            self[key] = value;
+        }
     });
 
     this.character = profile;
@@ -140,6 +146,9 @@ var Item = function(model, profile) {
         var maxBonusPoints = self.getValue("MaxBonusPoints");
         var futureBaseCSP = self.futureBaseCSP();
         var maxBaseCSP = tgd.DestinyMaxCSP[self.bucketType];
+        if (self.id == "2672107540") {
+            maxBaseCSP = 286;
+        }
         if (futureBaseCSP > maxBonusPoints) {
             if (self._id == "6917529080710062428") {
                 console.log("reducing maxBaseCSP by ", maxBonusPoints)
@@ -169,6 +178,15 @@ Item.prototype = {
         } else if (item.id in _itemDefs) {
             item.itemHash = item.id;
             info = _itemDefs[item.id];
+        } else if (item.itemHash in _questDefs) {
+            info = {
+                bucketTypeHash: _questDefs[item.itemHash],
+                itemName: "Classified Quest",
+                tierTypeName: "Common",
+                icon: "/img/misc/missing_icon.png",
+                itemTypeName: "Quests"
+            };
+            console.log("found a quest item! ", item.itemHash, item, info);
         } else {
             /* Classified Items */
             info = {
@@ -178,8 +196,7 @@ Item.prototype = {
                 icon: "/img/misc/missing_icon.png",
                 itemTypeName: "Classified"
             };
-            tgd.localLog("found an item without a definition! " + JSON.stringify(item));
-            tgd.localLog(item.itemHash);
+            console.log("found an item without a definition! ", item.itemHash, item);
         }
         if (info.bucketTypeHash in tgd.DestinyBucketTypes) {
             //some weird stuff shows up under this bucketType w/o this filter
@@ -202,10 +219,9 @@ Item.prototype = {
             bucketType = item.bucketType || self.character.getBucketTypeHelper(item, info);
             $.extend(self, {
                 id: item.itemHash,
-                href: "https://destinydb.com/items/" + item.itemHash,
+                href: "http://destinydb.com/items/" + item.itemHash,
                 _id: item.itemInstanceId,
                 characterId: ko.observable(self.character.id),
-                isEquipped: ko.observable(),
                 locked: ko.observable(),
                 bonusStatOn: ko.observable(),
                 primaryStat: ko.observable(),
@@ -236,6 +252,8 @@ Item.prototype = {
                 }, "")
             });
             self.updateItem(item);
+        } else {
+            console.log("item not being inserted", item, info, self.character.uniqueName());
         }
     },
     updateItem: function(item) {
@@ -243,6 +261,15 @@ Item.prototype = {
         var info = {};
         if (item.itemHash in _itemDefs) {
             info = _itemDefs[item.itemHash];
+        } else if (item.itemHash in _questDefs) {
+            info = {
+                bucketTypeHash: _questDefs[item.itemHash],
+                itemName: "Classified Quest",
+                tierTypeName: "Common",
+                icon: "/img/misc/missing_icon.png",
+                itemTypeName: "Quests"
+            };
+            console.log("found a quest item! ", item.itemHash, item, info);
         } else {
             /* Classified Items */
             info = {
@@ -252,8 +279,7 @@ Item.prototype = {
                 icon: "/img/misc/missing_icon.png",
                 itemTypeName: "Classified"
             };
-            tgd.localLog("found an item without a definition! " + JSON.stringify(item));
-            tgd.localLog(item.itemHash);
+            console.log("found an item without a definition! ", item.itemHash, item);
         }
         var bucketType = item.bucketType || self.character.getBucketTypeHelper(item, info);
         var primaryStat = self.parsePrimaryStat(item, bucketType);
@@ -261,6 +287,7 @@ Item.prototype = {
         self.isEquipped(item.isEquipped);
         self.locked(item.locked);
         self.perks = self.parsePerks(item.id, item.talentGridHash, item.perks, item.nodes, item.itemInstanceId);
+        self.perkTree = self.createPerkTree(item.id, item.talentGridHash, item.perks, item.nodes, item.itemInstanceId);
         self.statPerks = _.where(self.perks, {
             isStat: true
         });
@@ -423,6 +450,50 @@ Item.prototype = {
             parsedStats = stats;
         }
         return parsedStats;
+    },
+    createPerkTree: function(id, talentGridHash, perks, nodes, itemInstanceId) {
+        var self = this;
+        var talentGrid = _talentGridDefs[talentGridHash];
+        self.dtrUrl = [];
+        var perkTree = _.reduce(nodes, function(memo, node) {
+            var tgNode = _.findWhere(talentGrid.nodes, {
+                nodeHash: node.nodeHash
+            });
+            var level = tgNode.column;
+            var dtrHash = node.nodeHash.toString(16);
+            var stepIndex = node.stepIndex.toString(16);
+            if (dtrHash.length > 1) dtrHash += ".";
+            dtrHash += stepIndex;
+            if (node.isActivated) dtrHash += "o";
+            self.dtrUrl.push(dtrHash);
+            var talent = tgNode.steps[node.stepIndex];
+            if (talent && !node.hidden) {
+                talent.node = node;
+                talent.column = level;
+                if (!_.has(memo, level)) {
+                    memo[level] = [];
+                }
+                if (_.pluck(memo[level], 'nodeStepHash').indexOf(talent.nodeStepHash) == -1) {
+                    memo[level].push(talent);
+                }
+            }
+            return memo;
+        }, []);
+        self.ddbUrl = _.reduce(perkTree, function(memo, p, i) {
+            if (i > 0) {
+                _.each(p, function(n, ii) {
+                    if (n.node.isActivated) {
+                        memo.push([n.column, ii, n.node.stepIndex + 1].join("-"));
+                    }
+                });
+            }
+            return memo;
+        }, []).join(";");
+        if (self.href.indexOf("#calc") == -1) {
+            self.href = self.href + "#calc;" + self.ddbUrl;
+        }
+        self.dtrUrl = self.dtrUrl.join(";");
+        return perkTree;
     },
     parsePerks: function(id, talentGridHash, perks, nodes, itemInstanceId) {
         var parsedPerks = [];
@@ -1576,8 +1647,20 @@ Item.prototype = {
             }
         });
     },
+    openPerkTree: function() {
+        (new tgd.koDialog({
+            templateName: 'itemPerkTreeTemplate',
+            viewModel: this,
+            buttons: [{
+                label: app.activeText().cancel,
+                action: function(dialog) {
+                    dialog.close();
+                }
+            }]
+        })).title("Perks for " + this.description).show(true);
+    },
     openInDestinyTracker: function() {
-        window.open("http://db.destinytracker.com/items/" + this.id, tgd.openTabAs);
+        window.open("http://db.destinytracker.com/items/" + this.id + "#" + this.dtrUrl, tgd.openTabAs);
     },
     openInArmory: function() {
         window.open("https://www.bungie.net/en/armory/Detail?type=item&item=" + this.id, tgd.openTabAs);

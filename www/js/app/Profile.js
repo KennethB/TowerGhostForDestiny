@@ -8,6 +8,7 @@ function Profile(character) {
     this.level = ko.observable("");
     this.stats = ko.observable("");
     this.race = ko.observable("");
+    this.loadoutsFilter = ko.observable("");
     this.percentToNextLevel = ko.observable("");
     this.background = ko.observable("");
     this.items = ko.observableArray().extend({
@@ -51,6 +52,7 @@ function Profile(character) {
     this.potentialTier = ko.pureComputed(this._potentialTier, this);
     this.potentialCSP = ko.pureComputed(this._potentialCSP, this);
     this.powerLevel = ko.pureComputed(this._powerLevel, this);
+    this.highestLevel = ko.pureComputed(this._highestLevel, this);
     this.classLetter = ko.pureComputed(this._classLetter, this);
     this.uniqueName = ko.pureComputed(this._uniqueName, this);
     this.iconBG = ko.pureComputed(this._iconBG, this);
@@ -297,13 +299,16 @@ Profile.prototype = {
                 var newItems = _.filter(app.bungie.flattenItemArray(results.data.buckets), self.reloadBucketFilter(buckets));
                 self.addItems(newItems, buckets);
                 done();
+            } else if (results && results.data && results.data.items) {
+                var newItems = _.filter(results.data.items, self.reloadBucketFilter(buckets));
+                self.addItems(newItems, buckets);
+                done();
             } else {
                 if (results && results.ErrorCode && results.ErrorCode == 99) {
                     done();
                     return BootstrapDialog.alert(results.Message);
                 } else {
                     done();
-                    app.refresh();
                     return BootstrapDialog.alert("Code 20: " + app.activeText().error_loading_inventory + JSON.stringify(response));
                 }
             }
@@ -404,6 +409,15 @@ Profile.prototype = {
     _powerLevel: function() {
         if (this.id == "Vault") return "";
         return this.calculatePowerLevelWithItems(this.equippedGear());
+    },
+    _highestLevel: function() {
+        return 0;
+        /*var character = this;
+        var items = _.flatten(_.map(app.characters(), function(avatar) {
+            return avatar.items();
+        }));
+        var highestSet = character.findHighestItemsByLight(tgd.DestinyWeaponPieces.concat(tgd.DestinyArmorPieces), items)[1];
+        return character.calculatePowerLevelWithItems(highestSet);*/
     },
     _reloadBucket: function(model, event, callback, excludeMessage) {
         var self = this,

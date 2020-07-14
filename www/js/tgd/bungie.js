@@ -310,6 +310,17 @@ tgd.bungie = (function(cookieString, complete) {
         });
     };
 
+    this.getCharacterProgression = function(characterId, callback) {
+        self.request({
+            route: '/Destiny/' + active.type +
+                '/Account/' + active.membership +
+                '/Character/' + characterId +
+                '/Progression/',
+            method: 'GET',
+            complete: callback
+        });
+    };
+
     this.inventory = function(characterId, callback) {
         self.request({
             route: '/Destiny/' + active.type +
@@ -395,6 +406,19 @@ tgd.bungie = (function(cookieString, complete) {
                 tgd.localLog("response-cookie-from-cs: " + event.detail);
                 self.requestCookieCB(event.detail);
             });
+        }
+        if (isChrome && chrome && chrome.webRequest) {
+            chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
+                var headers = details.requestHeaders.filter(function(h) {
+                    return !(h.name === "Origin" && h.value.startsWith(chrome.extension.getURL('')));
+                });
+
+                return {
+                    requestHeaders: headers
+                };
+            }, {
+                urls: ["https://*.bungie.net/*"]
+            }, ["blocking", "requestHeaders"]);
         }
         tgd.localLog("bungie.init");
         if (isStaticBrowser) {

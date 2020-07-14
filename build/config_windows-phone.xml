@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.richardpinedo.towerghostfordestiny" versionCode="3920" version="3.9.2" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
+<widget id="com.richardpinedo.towerghostfordestiny" versionCode="3930" version="3.9.3" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
     <name>Tower Ghost for Destiny</name>
     <description>
 		This app allows you to transfer items between profiles, with various filters.
@@ -24,15 +24,14 @@
     <preference name="show-splash-screen-spinner" value="true" />
     <preference name="auto-hide-splash-screen" value="true" />
     <preference name="disable-cursor" value="false" />
-	<gap:plugin name="org.apache.cordova.globalization" />
+	<plugin name="cordova-plugin-globalization" spec="~1.0.5" />
 	<gap:plugin name="cordova-plugin-whitelist" source="npm" />
 	<gap:plugin name="cordova-plugin-inappbrowser" source="npm" />
 	<gap:plugin name="cordova-plugin-splashscreen" source="npm" />
-    <gap:plugin name="org.apache.cordova.statusbar" />
-    <gap:plugin name="org.apache.cordova.device" />
-	<gap:plugin name="org.apache.cordova.file-transfer" />
-	<gap:plugin name="org.apache.cordova.file" />
-    <gap:plugin name="cordova-plugin-insomnia" />
+    <plugin name="cordova-plugin-statusbar" spec="~2.2.1" />
+    <plugin name="cordova-plugin-device" spec="~1.1.4" />
+	<plugin name="cordova-plugin-file-transfer" spec="~1.6.1" />
+	<plugin name="cordova-plugin-file" spec="~4.3.1" />
     
     <icon src="icon.png" />
 
